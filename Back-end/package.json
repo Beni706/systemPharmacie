@@ -1,5 +1,5 @@
 {
-  "name": "systemePharmacie",
+  "name": "Back-end",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -18,10 +18,9 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
-    "node-fetch": "^3.3.2"
+    "nodemon": "^3.1.9"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9",
     "prisma": "^6.5.0"
   }
 }

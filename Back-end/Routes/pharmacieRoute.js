@@ -18,3 +18,4 @@ pharmacieRouter.put('/:id', authentificateToken, updatePharmacie)
 
 // Supprimer une pharmacie
 pharmacieRouter.delete('/:id', authentificateToken, deletePharmacie)
+
