@@ -34,11 +34,18 @@ export default function Map({ locations }) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
-      {locations.map((location) => (
-        <Marker key={location.id} position={location.coordinates}>
-          <Popup>{location.name}</Popup>
-        </Marker>
-      ))}
+      {locations.map((location) => {
+        if (!location.latitude || !location.longitude || !location.id) {
+          console.error("Données manquantes ou invalides pour :", location);
+          return null; // Ignorez les marqueurs avec des données invalides
+        }
+
+        return (
+          <Marker key={location.id} position={[location.latitude, location.longitude]}>
+            <Popup>{location.nom}</Popup>
+          </Marker>
+        );
+      })}
     </MapContainer>
   );
 }
