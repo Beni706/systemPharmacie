@@ -16,7 +16,7 @@ model pharmacies {
     adresse             String
     latitude            Float
     longitude           Float
-    telephone           Int?
+    telephone           String?
     services            String?
     info_supplementaire String?
   }

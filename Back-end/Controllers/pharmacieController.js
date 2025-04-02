@@ -32,8 +32,8 @@ export const getAllPharmacies = async (req, res) => {
 
 // Afficher les 5 pharmacies les plus proches
 export const getAllPharmacieProche = async (req, res) => {
-        const { lat, lng } = req.query;
-    if (!lat || !lng) {
+        const { latitude, longitude } = req.query;
+    if (!latitude || !longitude) {
         return res.status(400).json({ error: "Latitude et longitude requises." });
     }
 
@@ -42,7 +42,7 @@ export const getAllPharmacieProche = async (req, res) => {
         
         const pharmaciesAvecDistance = pharmacies.map(pharmacie => {
             const distance = calculateDistance(
-                parseFloat(lat), parseFloat(lng),
+                parseFloat(latitude), parseFloat(longitude),
                 pharmacie.latitude, pharmacie.longitude
             );
             return { ...pharmacie, distance };
@@ -100,29 +100,31 @@ export const createPharmacie = async (req, res) => {
 // Mettre à jour une pharmacie
 export const updatePharmacie = async (req, res) => {
     try {
-        const { id_Pharmacie } = req.params
-        const { nom, adresse, latitude, longitude, telephone, services, info_supplementaire } = req.body
+        const { id } = req.params;
+
+        const { nom, adresse, latitude, longitude, telephone, services, info_supplementaire } = req.body;
+
 
         // Mettre à jour la pharmacie
         const pharmacie = await prisma.pharmacies.update({
-            where: { id: parseInt(id_Pharmacie)},
+            where: { id_pharmacie: parseInt(id) },
             data: {
                 nom,
                 adresse,
                 latitude,
                 longitude,
-                telephone: telephone || null,
-                services: services || null,
-                info_supplementaire: info_supplementaire || null
+                telephone,
+                services,
+                info_supplementaire
             }
-        })
-        res.json({ message: 'Pharmacie mise à jour avec succès', pharmacie })
+        });
 
-    } catch(error) {
-        console.log(error)
-        res.status(500).json({ message: 'Erreur lors de la mise à jour de la pharmacie' })
+        res.json({ message: 'Pharmacie mise à jour avec succès', pharmacie });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur lors de la mise à jour de la pharmacie' });
     }
-}
+};
 
 
 // Supprimer une pharmacie
