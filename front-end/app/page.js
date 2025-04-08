@@ -1,21 +1,18 @@
-"use client";
-
-import { useState } from "react";
-import Map from "../components/Map";
-
+import Header from "@/components/header"
+import HeroCarousel from "@/components/hero-carousel"
+import PharmacyFinder from "@/components/pharmacy-finder"
 
 export default function Home() {
-  const [searchTerm, setSearchTerm] = useState(""); // État pour le terme de recherche
-  const [locations, setLocations] = useState([]); // État pour les données de localisation
-
-  const handleLocationClick = (location) => {
-    console.log("Location clicked:", location);
-    // Ajoutez ici toute logique supplémentaire pour gérer le clic sur une localisation
-  };
-
   return (
-    <div style={{ display: "flex", height: "100vh", width: "100%" }}>
-            <Map locations={locations} />
-    </div>
-  );
+    <main className="min-h-screen bg-white">
+      <Header />
+      <HeroCarousel />
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-center mb-8 text-emerald-600">
+          Où est la pharmacie la plus proche ?
+        </h1>
+        <PharmacyFinder />
+      </div>
+    </main>
+  )
 }
