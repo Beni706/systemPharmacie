@@ -1,13 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    async rewrites() {
-        return [
-          {
-            source: '/api/:path*',
-            destination: 'http://localhost:8080/:path*', // Ajustez selon votre backend
-          },
-        ];
-      },
-};
-
-export default nextConfig;
+    env: {
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080",
+    },
+  }
+  
+  export default nextConfig  

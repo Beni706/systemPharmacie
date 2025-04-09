@@ -56,9 +56,6 @@ export const getAllPharmacieProche = async (req, res) => {
     return res.status(400).json({ error: "Latitude et longitude requises." })
   }
 
-  // Journaliser les coordonnées reçues
-  console.log("Coordonnées reçues:", { latitude, longitude })
-
   try {
     // Vérifier si les coordonnées sont valides
     const lat = Number.parseFloat(latitude)
@@ -75,7 +72,6 @@ export const getAllPharmacieProche = async (req, res) => {
     const roundedLat = Number.parseFloat(lat.toFixed(6))
     const roundedLng = Number.parseFloat(lng.toFixed(6))
 
-    console.log("Coordonnées arrondies:", { roundedLat, roundedLng })
 
     const pharmacies = await prisma.pharmacies.findMany()
 
@@ -84,7 +80,6 @@ export const getAllPharmacieProche = async (req, res) => {
       return res.status(404).json({ message: "Aucune pharmacie trouvée dans la base de données" })
     }
 
-    console.log(`Nombre de pharmacies trouvées: ${pharmacies.length}`)
 
     const pharmaciesAvecDistance = pharmacies.map((pharmacie) => {
       // Vérifier si les coordonnées de la pharmacie sont valides
