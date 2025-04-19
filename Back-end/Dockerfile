@@ -1,21 +1,29 @@
+# Utilise une image de base Node.js
 FROM node:18
 
+# Définir le répertoire de travail
 WORKDIR /app
 
-COPY package*.json ./
+# Copier le fichier package.json et pnpm-lock.yaml pour installer les dépendances
+COPY package*.json pnpm-lock.yaml ./
 
-# Installer pnpm
+# Installer pnpm globalement
 RUN npm install -g pnpm
 
-# Ajoute Prisma CLI si besoin
+# Installer les dépendances du projet
+RUN pnpm install
+
+# Installer Prisma CLI si nécessaire
 RUN pnpm install prisma --save-dev
 
-# Copie le code source
+# Copier le code source
 COPY . .
 
-# Génère le client Prisma
+# Générer le client Prisma
 RUN pnpx prisma generate
 
+# Exposer le port que ton API utilise
 EXPOSE 8080
 
+# Commande pour démarrer ton API
 CMD ["pnpm", "start"]
