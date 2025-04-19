@@ -11,7 +11,7 @@ const MapLoading = () => (
 )
 
 // Composant de carte de pharmacie avec polylines au lieu de Leaflet Routing Machine
-const PharmacyMap = ({ pharmacies, userLocation, selectedPharmacy, onPharmacySelect, showRoutes }) => {
+const PharmacyMap = ({ pharmacies, userLocation, selectedPharmacy, onPharmacySelect, showRoutes, onMapClick }) => {
   const mapRef = useRef(null)
   const mapContainerRef = useRef(null)
   const markersRef = useRef({})
@@ -58,6 +58,13 @@ const PharmacyMap = ({ pharmacies, userLocation, selectedPharmacy, onPharmacySel
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(mapRef.current)
+        // 👉 Écoute du clic sur la carte
+      mapRef.current.on("click", function (e) {
+        if (onMapClick) {
+          const { lat, lng } = e.latlng
+          onMapClick({ lat, lng })
+        }
+      })
     } else if (userLocation) {
       // Si la carte existe déjà et que nous avons une position utilisateur, mettre à jour la vue
       mapRef.current.setView([userLocation.lat, userLocation.lng], 14)

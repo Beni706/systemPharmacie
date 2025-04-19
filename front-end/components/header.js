@@ -17,7 +17,7 @@ export default function Header() {
               {" "}
               {/* Utiliser justify-center pour aligner verticalement */}
               <span className="text-xl font-bold text-emerald-600">Pharma Labs</span>
-              <span className="text-[0.7rem] font-bold text-gray-800 -mt-2">Toujours plus proche</span>{" "}
+              <span className="text-[0.7rem] font-bold text-gray-800 -mt-2">Toujours plus proche de vous</span>{" "}
               {/* text-sm et text-gray-800 */}
             </div>
           </Link>

@@ -101,6 +101,15 @@ export default function PharmacyForm({ initialData = null, onSubmit }) {
   // Fonction pour gérer la sélection d'une pharmacie sur la carte (non utilisée ici)
   const handlePharmacySelect = () => {}
 
+  // ✅ Fonction à ajouter ici
+const handleMapClick = ({ lat, lng }) => {
+  setFormData((prev) => ({
+    ...prev,
+    latitude: lat.toFixed(6),
+    longitude: lng.toFixed(6),
+  }))
+}
+
   return (
     <form onSubmit={handleSubmit}>
       {error && (
@@ -165,6 +174,7 @@ export default function PharmacyForm({ initialData = null, onSubmit }) {
                         userLocation={userLocation}
                         selectedPharmacy={pharmacyForMap[0]}
                         onPharmacySelect={handlePharmacySelect}
+                        onMapClick={handleMapClick}
                         showRoutes={false}
                       />
                     ) : (

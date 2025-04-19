@@ -51,7 +51,9 @@ export default function PharmacyFinder() {
     }
   }, [watchId])
 
-  // Fonction pour trouver les pharmacies proches
+  // Modifions la fonction handleLocateUser pour activer le suivi en temps réel
+
+  // Remplacer la fonction handleLocateUser actuelle par celle-ci:
   const handleLocateUser = () => {
     if (navigator.geolocation) {
       // Afficher un message de chargement
@@ -61,7 +63,7 @@ export default function PharmacyFinder() {
       // Options de géolocalisation pour améliorer la précision
       const geoOptions = {
         enableHighAccuracy: true, // Utiliser GPS si disponible
-        timeout: 20000, // Timeout après 20 secondes (augmenté)
+        timeout: 20000, // Timeout après 20 secondes
         maximumAge: 0, // Ne pas utiliser de cache
       }
 
@@ -76,65 +78,74 @@ export default function PharmacyFinder() {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy,
+            timestamp: position.timestamp,
           }
 
           console.log("Position formatée:", userLoc)
 
+          // Vérifier si le déplacement est significatif (plus de 10 mètres)
+          // ou si c'est la première position obtenue
+          const isFirstPosition = !userLocation
+          const isSignificantMove =
+            isFirstPosition || calculateDistance(userLocation.lat, userLocation.lng, userLoc.lat, userLoc.lng) > 10
+
           // Mettre à jour l'état avec la position de l'utilisateur
           setUserLocation(userLoc)
 
-          try {
-            // Récupérer les pharmacies proches
-            const url = `${process.env.NEXT_PUBLIC_API_URL}/pharmacie/proche?latitude=${userLoc.lat.toFixed(6)}&longitude=${userLoc.lng.toFixed(6)}`
-            console.log("Requête API:", url)
+          // Si c'est la première position ou un déplacement significatif,
+          // mettre à jour les pharmacies proches
+          if (isFirstPosition || isSignificantMove) {
+            try {
+              // Récupérer les pharmacies proches
+              const url = `${process.env.NEXT_PUBLIC_API_URL}/pharmacie/proche?latitude=${userLoc.lat.toFixed(6)}&longitude=${userLoc.lng.toFixed(6)}`
+              console.log("Requête API:", url)
 
-            const response = await fetch(url)
+              const response = await fetch(url)
 
-            if (!response.ok) {
-              const errorText = await response.text()
-              throw new Error(`Erreur API (${response.status}): ${errorText}`)
-            }
+              if (!response.ok) {
+                const errorText = await response.text()
+                throw new Error(`Erreur API (${response.status}): ${errorText}`)
+              }
 
-            const data = await response.json()
+              const data = await response.json()
 
-            if (Array.isArray(data)) {
-              console.log("Pharmacies proches reçues:", data.length)
+              if (Array.isArray(data)) {
+                console.log("Pharmacies proches reçues:", data.length)
 
-              // Vérifier que les données contiennent des coordonnées valides
-              const validData = data.filter(
-                (pharmacy) =>
-                  pharmacy &&
-                  typeof pharmacy.latitude === "number" &&
-                  typeof pharmacy.longitude === "number" &&
-                  !isNaN(pharmacy.latitude) &&
-                  !isNaN(pharmacy.longitude),
-              )
-
-              if (validData.length !== data.length) {
-                console.warn(
-                  `${data.length - validData.length} pharmacies ont des coordonnées invalides et ont été filtrées`,
+                // Vérifier que les données contiennent des coordonnées valides
+                const validData = data.filter(
+                  (pharmacy) =>
+                    pharmacy &&
+                    typeof pharmacy.latitude === "number" &&
+                    typeof pharmacy.longitude === "number" &&
+                    !isNaN(pharmacy.latitude) &&
+                    !isNaN(pharmacy.longitude),
                 )
+
+                if (validData.length !== data.length) {
+                  console.warn(
+                    `${data.length - validData.length} pharmacies ont des coordonnées invalides et ont été filtrées`,
+                  )
+                }
+
+                setNearbyPharmacies(validData)
+
+                // Activer l'affichage des itinéraires
+                setShowRoutes(true)
+
+                // Sélectionner automatiquement la pharmacie la plus proche
+                if (validData.length > 0) {
+                  const sorted = [...validData].sort((a, b) => (a.distance || 0) - (b.distance || 0))
+                  setSelectedPharmacy(sorted[0])
+                }
+              } else {
+                console.error("Format de données inattendu:", data)
+                setGeoError("Format de données inattendu reçu du serveur")
               }
-
-              setNearbyPharmacies(validData)
-
-              // Activer l'affichage des itinéraires
-              setShowRoutes(true)
-
-              // Sélectionner automatiquement la pharmacie la plus proche
-              if (validData.length > 0) {
-                const sorted = [...validData].sort((a, b) => (a.distance || 0) - (b.distance || 0))
-                setSelectedPharmacy(sorted[0])
-              }
-            } else {
-              console.error("Format de données inattendu:", data)
-              setGeoError("Format de données inattendu reçu du serveur")
+            } catch (apiError) {
+              console.error("Erreur lors de la récupération des pharmacies proches:", apiError)
+              setGeoError(`Erreur API: ${apiError.message}`)
             }
-          } catch (apiError) {
-            console.error("Erreur lors de la récupération des pharmacies proches:", apiError)
-            setGeoError(`Erreur API: ${apiError.message}`)
-            // Ne pas réinitialiser showRoutes et selectedPharmacy en cas d'erreur API
-            // pour conserver l'état précédent si possible
           }
         } catch (error) {
           console.error("Erreur générale dans geoSuccess:", error)
@@ -169,11 +180,12 @@ export default function PharmacyFinder() {
         setIsLoading(false)
       }
 
-      // Utiliser watchPosition au lieu de getCurrentPosition pour une mise à jour continue
+      // Nettoyer l'ancien watchPosition s'il existe
       if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId)
       }
 
+      // Démarrer le suivi de position
       const id = navigator.geolocation.watchPosition(geoSuccess, geoError, geoOptions)
       setWatchId(id)
 
@@ -182,6 +194,20 @@ export default function PharmacyFinder() {
     } else {
       alert("La géolocalisation n'est pas prise en charge par votre navigateur.")
     }
+  }
+
+  // Ajouter cette fonction pour calculer la distance entre deux points
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3 // Rayon de la terre en mètres
+    const φ1 = (lat1 * Math.PI) / 180
+    const φ2 = (lat2 * Math.PI) / 180
+    const Δφ = ((lat2 - lat1) * Math.PI) / 180
+    const Δλ = ((lon2 - lon1) * Math.PI) / 180
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+    return R * c // Distance en mètres
   }
 
   // Gérer le clic sur une pharmacie dans la liste
@@ -217,12 +243,12 @@ export default function PharmacyFinder() {
           </div>
           <Button
             variant="outline"
-            className="bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2"
+            className={`${watchId !== null ? "bg-blue-600" : "bg-emerald-600"} text-white hover:bg-emerald-700 flex items-center gap-2`}
             onClick={handleLocateUser}
             disabled={isLoading}
           >
-            <Navigation className="h-4 w-4" />
-            {isLoading ? "Localisation..." : "Près de moi"}
+            <Navigation className={`h-4 w-4 ${watchId !== null ? "animate-pulse" : ""}`} />
+            {isLoading ? "Localisation..." : watchId !== null ? "Suivi actif" : "Près de moi"}
           </Button>
           <Sheet>
             <SheetTrigger asChild>
