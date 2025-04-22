@@ -139,7 +139,7 @@ export const loginAdministrateur = async (req, res) => {
         }
 
         // Genere le token
-        const token = jwt.sign({ id: existeAdministrateur.id_administrateur }, JWT_SECRET, { expiresIn: '1h'})
+        const token = jwt.sign({ id: existeAdministrateur.id_administrateur }, JWT_SECRET, { expiresIn: '7d'})
 
         res.status(200).json({ message: 'Connexion réussie', token })
 

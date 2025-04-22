@@ -18,9 +18,6 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return Number.MAX_VALUE // Retourner une grande valeur en cas d'erreur
   }
 
-  // Journaliser les coordonnées pour le débogage
-  console.log("Calcul de distance entre:", { lat1, lon1 }, "et", { lat2, lon2 })
-
   const R = 6371 // Rayon de la Terre en km
   const dLat = (lat2 - lat1) * (Math.PI / 180)
   const dLon = (lon2 - lon1) * (Math.PI / 180)
@@ -101,7 +98,6 @@ export const getAllPharmacieProche = async (req, res) => {
     // Prendre les 5 plus proches
     const nearestPharmacies = validPharmacies.slice(0, 5)
 
-    console.log(`Pharmacies les plus proches: ${nearestPharmacies.length}`)
 
     res.json(nearestPharmacies)
   } catch (error) {

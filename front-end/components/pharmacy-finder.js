@@ -1,5 +1,6 @@
 "use client"
 
+
 import { useState, useEffect } from "react"
 import { Search, MapPin, Clock, Phone, Filter, Navigation } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -12,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import PharmacyMap from "./pharmacy-map"
 
 export default function PharmacyFinder() {
+  const [showRoutes, setShowRoutes] = useState(false)
   const [pharmacies, setPharmacies] = useState([])
   const [nearbyPharmacies, setNearbyPharmacies] = useState([])
   const [userLocation, setUserLocation] = useState(null)
@@ -22,9 +24,7 @@ export default function PharmacyFinder() {
     onDuty: false,
   })
   const [selectedPharmacy, setSelectedPharmacy] = useState(null)
-  const [showRoutes, setShowRoutes] = useState(false)
   const [geoError, setGeoError] = useState(null)
-  const [watchId, setWatchId] = useState(null)
 
   // Récupérer les données des pharmacies
   useEffect(() => {
@@ -35,6 +35,7 @@ export default function PharmacyFinder() {
         setPharmacies(data)
         setNearbyPharmacies(data)
         setIsLoading(false)
+        
       } catch (error) {
         console.error("Erreur lors de la récupération des pharmacies:", error)
         setIsLoading(false)
@@ -42,185 +43,72 @@ export default function PharmacyFinder() {
     }
 
     fetchPharmacies()
+  }, [])
 
-    // Nettoyer le watchPosition lors du démontage du composant
-    return () => {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId)
-      }
-    }
-  }, [watchId])
-
-  // Modifions la fonction handleLocateUser pour activer le suivi en temps réel
-
-  // Remplacer la fonction handleLocateUser actuelle par celle-ci:
-  const handleLocateUser = () => {
+  // Fonction pour localiser l'utilisateur
+  const locateUser = () => {
     if (navigator.geolocation) {
-      // Afficher un message de chargement
       setIsLoading(true)
       setGeoError(null)
+      setShowRoutes(true)
 
-      // Options de géolocalisation pour améliorer la précision
-      const geoOptions = {
-        enableHighAccuracy: true, // Utiliser GPS si disponible
-        timeout: 20000, // Timeout après 20 secondes
-        maximumAge: 0, // Ne pas utiliser de cache
-      }
 
-      // Fonction pour gérer le succès de la géolocalisation
-      const geoSuccess = async (position) => {
-        try {
-          console.log("Position brute obtenue:", position.coords)
-          console.log("Précision:", position.coords.accuracy, "mètres")
-
-          // Extraire les coordonnées avec plus de précision
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
           const userLoc = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
             accuracy: position.coords.accuracy,
-            timestamp: position.timestamp,
           }
-
-          console.log("Position formatée:", userLoc)
-
-          // Vérifier si le déplacement est significatif (plus de 10 mètres)
-          // ou si c'est la première position obtenue
-          const isFirstPosition = !userLocation
-          const isSignificantMove =
-            isFirstPosition || calculateDistance(userLocation.lat, userLocation.lng, userLoc.lat, userLoc.lng) > 10
-
-          // Mettre à jour l'état avec la position de l'utilisateur
           setUserLocation(userLoc)
 
-          // Si c'est la première position ou un déplacement significatif,
-          // mettre à jour les pharmacies proches
-          if (isFirstPosition || isSignificantMove) {
-            try {
-              // Récupérer les pharmacies proches
-              const url = `${process.env.NEXT_PUBLIC_API_URL}/pharmacie/proche?latitude=${userLoc.lat.toFixed(6)}&longitude=${userLoc.lng.toFixed(6)}`
-              console.log("Requête API:", url)
-
-              const response = await fetch(url)
-
-              if (!response.ok) {
-                const errorText = await response.text()
-                throw new Error(`Erreur API (${response.status}): ${errorText}`)
-              }
-
-              const data = await response.json()
-
-              if (Array.isArray(data)) {
-                console.log("Pharmacies proches reçues:", data.length)
-
-                // Vérifier que les données contiennent des coordonnées valides
-                const validData = data.filter(
-                  (pharmacy) =>
-                    pharmacy &&
-                    typeof pharmacy.latitude === "number" &&
-                    typeof pharmacy.longitude === "number" &&
-                    !isNaN(pharmacy.latitude) &&
-                    !isNaN(pharmacy.longitude),
-                )
-
-                if (validData.length !== data.length) {
-                  console.warn(
-                    `${data.length - validData.length} pharmacies ont des coordonnées invalides et ont été filtrées`,
-                  )
-                }
-
-                setNearbyPharmacies(validData)
-
-                // Activer l'affichage des itinéraires
-                setShowRoutes(true)
-
-                // Sélectionner automatiquement la pharmacie la plus proche
-                if (validData.length > 0) {
-                  const sorted = [...validData].sort((a, b) => (a.distance || 0) - (b.distance || 0))
-                  setSelectedPharmacy(sorted[0])
-                }
-              } else {
-                console.error("Format de données inattendu:", data)
-                setGeoError("Format de données inattendu reçu du serveur")
-              }
-            } catch (apiError) {
-              console.error("Erreur lors de la récupération des pharmacies proches:", apiError)
-              setGeoError(`Erreur API: ${apiError.message}`)
+          // Récupérer les pharmacies proches
+          try {
+            const url = `${process.env.NEXT_PUBLIC_API_URL}/pharmacie/proche?latitude=${userLoc.lat.toFixed(6)}&longitude=${userLoc.lng.toFixed(6)}`
+            const response = await fetch(url)
+            const data = await response.json()
+            setNearbyPharmacies(data)
+            setShowRoutes(true) // 👉 Affiche les itinéraires automatiquement
+            
+            // ✅ Sélection automatique de la pharmacie la plus proche
+            if (data.length > 0) {
+              setSelectedPharmacy(data[0])
             }
+            
+          } catch (error) {
+            console.error("Erreur lors de la récupération des pharmacies proches:", error)
+          } finally {
+            setIsLoading(false)
           }
-        } catch (error) {
-          console.error("Erreur générale dans geoSuccess:", error)
-          setGeoError(`Erreur: ${error.message}`)
-        } finally {
+          
+        },
+        (error) => {
+          console.error("Erreur de géolocalisation:", error)
+          setGeoError("Impossible d'obtenir votre position.")
           setIsLoading(false)
-        }
-      }
-
-      // Fonction pour gérer l'erreur de géolocalisation
-      const geoError = (error) => {
-        console.error("Erreur de géolocalisation:", error)
-        let errorMsg = "Impossible d'obtenir votre position."
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMsg += " Vous avez refusé l'accès à votre position."
-            break
-          case error.POSITION_UNAVAILABLE:
-            errorMsg += " Les informations de position ne sont pas disponibles."
-            break
-          case error.TIMEOUT:
-            errorMsg += " La demande de position a expiré."
-            break
-          case error.UNKNOWN_ERROR:
-            errorMsg += " Une erreur inconnue s'est produite."
-            break
-        }
-
-        setGeoError(errorMsg)
-        alert(errorMsg)
-        setIsLoading(false)
-      }
-
-      // Nettoyer l'ancien watchPosition s'il existe
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId)
-      }
-
-      // Démarrer le suivi de position
-      const id = navigator.geolocation.watchPosition(geoSuccess, geoError, geoOptions)
-      setWatchId(id)
-
-      // Également obtenir une position immédiate
-      navigator.geolocation.getCurrentPosition(geoSuccess, geoError, geoOptions)
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      )
     } else {
       alert("La géolocalisation n'est pas prise en charge par votre navigateur.")
     }
   }
 
-  // Ajouter cette fonction pour calculer la distance entre deux points
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3 // Rayon de la terre en mètres
-    const φ1 = (lat1 * Math.PI) / 180
-    const φ2 = (lat2 * Math.PI) / 180
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180
+  // Effectuer un suivi actif toutes les 2 minutes
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      locateUser()
+    }, 120000) // 2 minutes
 
-    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2)
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-    return R * c // Distance en mètres
-  }
-
-  // Gérer le clic sur une pharmacie dans la liste
-  const handlePharmacySelect = (pharmacy) => {
-    setSelectedPharmacy(pharmacy)
-    // Conserver l'état des itinéraires
-  }
+    // Nettoyer l'intervalle lors du démontage du composant
+    return () => clearInterval(intervalId)
+  }, [])
 
   const filteredPharmacies = nearbyPharmacies
     .filter(
       (pharmacy) =>
         pharmacy.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pharmacy.adresse.toLowerCase().includes(searchTerm.toLowerCase()),
+        pharmacy.adresse.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .filter((pharmacy) => {
       if (filters.openNow && !pharmacy.isOpen) return false
@@ -243,12 +131,12 @@ export default function PharmacyFinder() {
           </div>
           <Button
             variant="outline"
-            className={`${watchId !== null ? "bg-blue-600" : "bg-emerald-600"} text-white hover:bg-emerald-700 flex items-center gap-2`}
-            onClick={handleLocateUser}
+            className="bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2"
+            onClick={locateUser}
             disabled={isLoading}
           >
-            <Navigation className={`h-4 w-4 ${watchId !== null ? "animate-pulse" : ""}`} />
-            {isLoading ? "Localisation..." : watchId !== null ? "Suivi actif" : "Près de moi"}
+            <Navigation className="h-4 w-4" />
+            {isLoading ? "Localisation..." : "Près de moi"}
           </Button>
           <Sheet>
             <SheetTrigger asChild>
@@ -286,13 +174,6 @@ export default function PharmacyFinder() {
 
         {geoError && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{geoError}</div>}
 
-        {userLocation && (
-          <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded-md text-sm">
-            Position: {userLocation.lat.toFixed(6)}, {userLocation.lng.toFixed(6)}
-            {userLocation.accuracy && ` (précision: ~${Math.round(userLocation.accuracy)}m)`}
-          </div>
-        )}
-
         <div className="h-[500px] overflow-y-auto pr-2 space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
@@ -309,7 +190,7 @@ export default function PharmacyFinder() {
                 className={`cursor-pointer hover:border-emerald-500 transition-colors ${
                   selectedPharmacy?.id_pharmacie === pharmacy.id_pharmacie ? "border-emerald-500" : ""
                 }`}
-                onClick={() => handlePharmacySelect(pharmacy)}
+                onClick={() => setSelectedPharmacy(pharmacy)}
               >
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start">
@@ -341,21 +222,6 @@ export default function PharmacyFinder() {
                       {pharmacy.isOnDuty && <Badge className="bg-emerald-600">De garde</Badge>}
                     </div>
                   </div>
-                  {pharmacy.services && (
-                    <div className="mt-3">
-                      <p className="text-xs text-gray-500 mb-1">Services:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {pharmacy.services.split(", ").map((service, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {service}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {pharmacy.info_supplementaire && (
-                    <p className="text-sm text-gray-600 mt-2">{pharmacy.info_supplementaire}</p>
-                  )}
                 </CardContent>
               </Card>
             ))
@@ -368,7 +234,7 @@ export default function PharmacyFinder() {
           pharmacies={filteredPharmacies}
           userLocation={userLocation}
           selectedPharmacy={selectedPharmacy}
-          onPharmacySelect={handlePharmacySelect}
+          onPharmacySelect={setSelectedPharmacy}
           showRoutes={showRoutes}
         />
       </div>
