@@ -1,6 +1,6 @@
 "use client"
 
-
+// Importation des hooks React et des composants UI
 import { useState, useEffect } from "react"
 import { Search, MapPin, Clock, Phone, Filter, Navigation } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -12,21 +12,23 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import PharmacyMap from "./pharmacy-map"
 
+// Composant principal pour la recherche et l'affichage des pharmacies
 export default function PharmacyFinder() {
-  const [showRoutes, setShowRoutes] = useState(false)
-  const [pharmacies, setPharmacies] = useState([])
-  const [nearbyPharmacies, setNearbyPharmacies] = useState([])
-  const [userLocation, setUserLocation] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
+  // États pour la gestion de l'affichage, des données et des filtres
+  const [showRoutes, setShowRoutes] = useState(false) // Afficher les itinéraires sur la carte
+  const [pharmacies, setPharmacies] = useState([]) // Toutes les pharmacies récupérées
+  const [nearbyPharmacies, setNearbyPharmacies] = useState([]) // Pharmacies proches de l'utilisateur
+  const [userLocation, setUserLocation] = useState(null) // Position de l'utilisateur
+  const [isLoading, setIsLoading] = useState(true) // Chargement en cours
+  const [searchTerm, setSearchTerm] = useState("") // Terme de recherche
   const [filters, setFilters] = useState({
-    openNow: false,
-    onDuty: false,
+    openNow: false, // Filtre "Ouvertes maintenant"
+    onDuty: false,  // Filtre "De garde"
   })
-  const [selectedPharmacy, setSelectedPharmacy] = useState(null)
-  const [geoError, setGeoError] = useState(null)
+  const [selectedPharmacy, setSelectedPharmacy] = useState(null) // Pharmacie sélectionnée
+  const [geoError, setGeoError] = useState(null) // Erreur de géolocalisation
 
-  // Récupérer les données des pharmacies
+  // Récupérer la liste des pharmacies au chargement du composant
   useEffect(() => {
     async function fetchPharmacies() {
       try {
@@ -35,24 +37,20 @@ export default function PharmacyFinder() {
         setPharmacies(data)
         setNearbyPharmacies(data)
         setIsLoading(false)
-        
       } catch (error) {
         console.error("Erreur lors de la récupération des pharmacies:", error)
         setIsLoading(false)
       }
     }
-
     fetchPharmacies()
   }, [])
 
-  // Fonction pour localiser l'utilisateur
+  // Fonction pour localiser l'utilisateur et récupérer les pharmacies proches
   const locateUser = () => {
     if (navigator.geolocation) {
       setIsLoading(true)
       setGeoError(null)
       setShowRoutes(true)
-
-
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const userLoc = {
@@ -61,26 +59,22 @@ export default function PharmacyFinder() {
             accuracy: position.coords.accuracy,
           }
           setUserLocation(userLoc)
-
-          // Récupérer les pharmacies proches
+          // Appel API pour récupérer les pharmacies proches
           try {
             const url = `${process.env.NEXT_PUBLIC_API_URL}/pharmacie/proche?latitude=${userLoc.lat.toFixed(6)}&longitude=${userLoc.lng.toFixed(6)}`
             const response = await fetch(url)
             const data = await response.json()
             setNearbyPharmacies(data)
-            setShowRoutes(true) // 👉 Affiche les itinéraires automatiquement
-            
-            // ✅ Sélection automatique de la pharmacie la plus proche
+            setShowRoutes(true)
+            // Sélection automatique de la pharmacie la plus proche
             if (data.length > 0) {
               setSelectedPharmacy(data[0])
             }
-            
           } catch (error) {
             console.error("Erreur lors de la récupération des pharmacies proches:", error)
           } finally {
             setIsLoading(false)
           }
-          
         },
         (error) => {
           console.error("Erreur de géolocalisation:", error)
@@ -94,16 +88,15 @@ export default function PharmacyFinder() {
     }
   }
 
-  // Effectuer un suivi actif toutes les 2 minutes
+  // Rafraîchit la position de l'utilisateur toutes les 2 minutes
   useEffect(() => {
     const intervalId = setInterval(() => {
       locateUser()
     }, 120000) // 2 minutes
-
-    // Nettoyer l'intervalle lors du démontage du composant
     return () => clearInterval(intervalId)
   }, [])
 
+  // Filtrage des pharmacies selon la recherche et les filtres actifs
   const filteredPharmacies = nearbyPharmacies
     .filter(
       (pharmacy) =>
@@ -116,9 +109,12 @@ export default function PharmacyFinder() {
       return true
     })
 
+  // Rendu du composant
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Colonne de gauche : liste et recherche */}
       <div className="order-1 lg:order-1">
+        {/* Barre de recherche et boutons */}
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -129,6 +125,7 @@ export default function PharmacyFinder() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          {/* Bouton de localisation */}
           <Button
             variant="outline"
             className="bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-2"
@@ -138,6 +135,7 @@ export default function PharmacyFinder() {
             <Navigation className="h-4 w-4" />
             {isLoading ? "Localisation..." : "Près de moi"}
           </Button>
+          {/* Bouton pour ouvrir les filtres */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon">
@@ -151,6 +149,7 @@ export default function PharmacyFinder() {
                 <SheetDescription>Filtrer les pharmacies selon vos besoins</SheetDescription>
               </SheetHeader>
               <div className="grid gap-4 py-4">
+                {/* Filtre "Ouvertes maintenant" */}
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="open-now"
@@ -159,6 +158,7 @@ export default function PharmacyFinder() {
                   />
                   <Label htmlFor="open-now">Ouvertes maintenant</Label>
                 </div>
+                {/* Filtre "De garde" */}
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="on-duty"
@@ -172,8 +172,10 @@ export default function PharmacyFinder() {
           </Sheet>
         </div>
 
+        {/* Affichage des erreurs de géolocalisation */}
         {geoError && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">{geoError}</div>}
 
+        {/* Liste des pharmacies filtrées */}
         <div className="h-[500px] overflow-y-auto pr-2 space-y-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
@@ -214,11 +216,13 @@ export default function PharmacyFinder() {
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-2">
+                      {/* Badge de distance */}
                       {pharmacy.distance !== undefined && (
                         <Badge variant="outline" className="bg-emerald-50">
                           {pharmacy.distance.toFixed(2)} km
                         </Badge>
                       )}
+                      {/* Badge "De garde" */}
                       {pharmacy.isOnDuty && <Badge className="bg-emerald-600">De garde</Badge>}
                     </div>
                   </div>
@@ -229,6 +233,7 @@ export default function PharmacyFinder() {
         </div>
       </div>
 
+      {/* Colonne de droite : carte des pharmacies */}
       <div className="order-2 lg:order-2 h-[300px] lg:h-[500px]">
         <PharmacyMap
           pharmacies={filteredPharmacies}

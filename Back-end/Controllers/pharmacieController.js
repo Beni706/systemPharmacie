@@ -203,7 +203,7 @@ export const deletePharmacie = async (req, res) => {
 
     // Supprimer la pharmacie
     await prisma.pharmacies.delete({
-      where: { id: Number.parseInt(id_Pharmacie) },
+      where: { id_pharmacie : Number.parseInt(id_Pharmacie) },
     })
     res.json({ message: "Pharmacie supprimé avec succès" })
   } catch (error) {

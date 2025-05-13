@@ -2,6 +2,7 @@ import express from 'express'
 import { configurationMiddleware } from './Middleware/middleware.js'
 import { pharmacieRouter } from './Routes/pharmacieRoute.js'
 import { administrateurRouter } from './Routes/administrateurRoute.js'
+import { FollowersRouter } from './Routes/followersRouter.js'
 
 // Créer une instance de l'application Express
 const app = express()
@@ -19,6 +20,9 @@ app.use('/pharmacie', pharmacieRouter)
 
 // Route pour les administrateurs
 app.use('/administrateur', administrateurRouter)
+
+// Route pour les followers
+app.use('/follower', FollowersRouter)
 
 // Ecoute du serveur
 app.listen(8080, () => {
